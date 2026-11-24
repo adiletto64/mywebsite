@@ -17,7 +17,8 @@ body {
   color: var(--ink);
   font-family: var(--font-sans);
   min-height: 100vh;
-  overflow-x: hidden;
+  overflow-x: clip;
+  scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -57,9 +58,117 @@ body {
 
 /* Reduce saturation by 20% across all visual layers */
 .page-shell,
+.globe-stage-wrap,
 .flying-poster,
 .detail-overlay {
   filter: saturate(0.8);
+}
+
+/* ===================================================== */
+/* 3D SCROLL-DRIVEN DESK -> SIDE-APPROACH GLOBE TRACK    */
+/* ===================================================== */
+.desk-scroll-track {
+  position: relative;
+  height: 260vh;
+}
+
+.desk-sticky-viewport {
+  position: sticky;
+  top: 0;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  perspective: 1400px;
+}
+
+.table-perspective-wrap {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-style: preserve-3d;
+  transform-origin: 50% 62%;
+  will-change: transform, opacity;
+  z-index: 2;
+}
+
+.table-perspective-wrap > .page-shell {
+  width: 100%;
+  padding-top: clamp(1rem, 3vh, 2.25rem);
+  padding-bottom: clamp(1rem, 3vh, 2.25rem);
+}
+
+.globe-stage-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  opacity: 0;
+  pointer-events: none;
+  will-change: opacity;
+}
+
+.globe-stage-wrap.is-interactive {
+  pointer-events: auto;
+}
+
+.globe-canvas-host {
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  touch-action: pan-y;
+}
+
+.globe-canvas-host.is-spinning {
+  cursor: grabbing;
+}
+
+.globe-hud {
+  position: absolute;
+  left: clamp(1.5rem, 6vw, 4.5rem);
+  bottom: clamp(1.5rem, 5vh, 3.25rem);
+  z-index: 10;
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.45s ease, transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+
+.globe-hud.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.globe-kicker {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: var(--ink-faint);
+  margin-bottom: 0.2rem;
+}
+
+.globe-hint {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--ink-muted);
+}
+
+.globe-down-link {
+  display: inline-block;
+  pointer-events: auto;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  color: var(--ink);
+  text-decoration: none;
+  opacity: 0.65;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.globe-down-link:hover {
+  opacity: 1;
+  transform: translateY(2px);
 }
 
 /* ===================================================== */

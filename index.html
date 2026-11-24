@@ -20,6 +20,15 @@
     crossorigin="anonymous"
   />
 
+  <!-- Three.js Import Map (for 3D Desktop Globe) -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js"
+      }
+    }
+  </script>
+
   <!-- Custom Styles -->
   <link rel="stylesheet" href="css/styles.css" />
 </head>
@@ -30,22 +39,42 @@
   <!-- Big Circular Spotlight & Blurred Shadow Overlay (Darkens Shadow Side + Posters in Shadow) -->
   <div class="spotlight-shadow-overlay" aria-hidden="true"></div>
 
-  <main class="page-shell mx-auto">
-    <!-- Unified Table Canvas: Handwritten Center Note + 3 Organic Poster Clusters -->
-    <div id="tableStage" class="table-stage">
-      <!-- Subtle Cluster Labels -->
-      <span class="cluster-tag tag-books" aria-hidden="true">books</span>
-      <span class="cluster-tag tag-series" aria-hidden="true">series</span>
-      <span class="cluster-tag tag-movies" aria-hidden="true">movies</span>
+  <!-- ================= 3D SCROLL-DRIVEN DESK -> GLOBE TRACK ================= -->
+  <section id="deskScrollTrack" class="desk-scroll-track">
+    <div class="desk-sticky-viewport">
+      <!-- Layer 1: Top-Down Poster Table (tilts into 3D side-view on scroll) -->
+      <div id="tablePerspectiveWrap" class="table-perspective-wrap">
+        <div class="page-shell mx-auto">
+          <div id="tableStage" class="table-stage">
+            <!-- Subtle Cluster Labels -->
+            <span class="cluster-tag tag-books" aria-hidden="true">books</span>
+            <span class="cluster-tag tag-series" aria-hidden="true">series</span>
+            <span class="cluster-tag tag-movies" aria-hidden="true">movies</span>
 
-      <!-- Center Title (among the posters, partially overlapped) -->
-      <header class="center-note">
-        <h1 id="heroName" class="hero-name mb-1" aria-label="Books, Movies, Series">Books, Movies, Series</h1>
-        <p class="hero-sub mb-0">explore to know about me</p>
-      </header>
+            <!-- Center Title (among the posters, partially overlapped) -->
+            <header class="center-note">
+              <h1 id="heroName" class="hero-name mb-1" aria-label="Books, Movies, Series">Books, Movies, Series</h1>
+              <p class="hero-sub mb-0">explore to know about me</p>
+            </header>
+          </div>
+        </div>
+      </div>
+
+      <!-- Layer 2: 3D Desktop Globe (approaches smoothly from the side & focuses on Northern Hemisphere) -->
+      <div id="globeStageWrap" class="globe-stage-wrap" aria-label="Interactive 3D Globe focused on the Northern Hemisphere">
+        <div id="globeCanvasHost" class="globe-canvas-host"></div>
+
+        <div id="globeHud" class="globe-hud">
+          <span class="globe-kicker">northern hemisphere</span>
+          <p class="globe-hint mb-2">drag to spin the globe</p>
+          <a href="#kyrgyzstanSection" class="globe-down-link">kyrgyzstan map &darr;</a>
+        </div>
+      </div>
     </div>
+  </section>
 
-    <!-- Scroll-Down Section: Map of Kyrgyzstan with Red Pushpins -->
+  <!-- ================= SCROLL-DOWN SECTION: KYRGYZSTAN MAP ================= -->
+  <div class="page-shell mx-auto">
     <section id="kyrgyzstanSection" class="kg-map-section" aria-label="Map of Kyrgyzstan">
       <div class="kg-map-header text-center mb-4">
         <span class="kg-map-kicker">places</span>
@@ -66,7 +95,7 @@
         </div>
       </div>
     </section>
-  </main>
+  </div>
 
   <!-- Flying Poster Element for Smooth Move-to-Center & Straighten Animation -->
   <div id="flyingPoster" class="flying-poster" aria-hidden="true">
@@ -103,7 +132,10 @@
     crossorigin="anonymous"
   ></script>
 
-  <!-- App Script -->
+  <!-- Main App Script -->
   <script src="js/app.js"></script>
+
+  <!-- 3D Globe & Smooth Side-Camera Scroll Transition -->
+  <script type="module" src="js/globe.js"></script>
 </body>
 </html>

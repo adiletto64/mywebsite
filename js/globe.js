@@ -6,7 +6,8 @@ const EARTH_BUMP_URL = "https://cdn.jsdelivr.net/npm/three-globe/example/img/ear
 
 // Axial tilt of Earth / classic desktop globe (23.4 degrees)
 const AXIAL_TILT_RAD = THREE.MathUtils.degToRad(23.4);
-const GLOBE_RADIUS = 1.38;
+const GLOBE_RADIUS = 1.32;
+const TABLE_TOP_Y = -2.06;
 
 function latLonToVector3(latDeg, lonDeg, radius) {
   const phi = THREE.MathUtils.degToRad(90 - latDeg);
@@ -63,20 +64,48 @@ function buildDesktopGlobeAssembly(maxAnisotropy) {
     metalness: 0.72
   });
 
-  // 1. Soft contact shadow on the desk surface
+  // 0. 3D Tabletop Cube/Slab under the globe (finite front & back edges, visible front cube face!)
+  // Top surface sits at y = TABLE_TOP_Y; front edge at +Z, back edge at -Z.
+  const slabWidth = 10.5;
+  const slabHeight = 0.78;
+  const slabDepth = 3.85;
+  const slabMaterials = [
+    new THREE.MeshStandardMaterial({ color: 0xe2dfd8, roughness: 0.92 }), // +X right side
+    new THREE.MeshStandardMaterial({ color: 0xe2dfd8, roughness: 0.92 }), // -X left side
+    new THREE.MeshStandardMaterial({ color: 0xfcfcfb, roughness: 0.94 }), // +Y top surface (matches paper-bg)
+    new THREE.MeshStandardMaterial({ color: 0xd6d3cb, roughness: 0.95 }), // -Y bottom
+    new THREE.MeshStandardMaterial({ color: 0xe5e3dc, roughness: 0.90 }), // +Z front vertical cube face
+    new THREE.MeshStandardMaterial({ color: 0xdad7cf, roughness: 0.92 })  // -Z back face
+  ];
+  const tableSlab = new THREE.Mesh(
+    new THREE.BoxGeometry(slabWidth, slabHeight, slabDepth),
+    slabMaterials
+  );
+  tableSlab.position.set(0, TABLE_TOP_Y - slabHeight / 2, 0);
+  root.add(tableSlab);
+
+  // Subtle crisp bevel shadow line along front top edge of the table cube
+  const frontEdgeStrip = new THREE.Mesh(
+    new THREE.BoxGeometry(slabWidth, 0.015, 0.015),
+    new THREE.MeshBasicMaterial({ color: 0xd8d5cd })
+  );
+  frontEdgeStrip.position.set(0, TABLE_TOP_Y, slabDepth / 2);
+  root.add(frontEdgeStrip);
+
+  // 1. Soft contact shadow on the tabletop surface directly under the globe's base
   const shadowCanvas = document.createElement("canvas");
   shadowCanvas.width = 256;
   shadowCanvas.height = 256;
   const sCtx = shadowCanvas.getContext("2d");
   const grad = sCtx.createRadialGradient(128, 128, 18, 128, 128, 122);
-  grad.addColorStop(0, "rgba(15, 14, 12, 0.34)");
+  grad.addColorStop(0, "rgba(15, 14, 12, 0.36)");
   grad.addColorStop(0.55, "rgba(15, 14, 12, 0.14)");
   grad.addColorStop(1, "rgba(15, 14, 12, 0)");
   sCtx.fillStyle = grad;
   sCtx.fillRect(0, 0, 256, 256);
 
   const shadowPlane = new THREE.Mesh(
-    new THREE.PlaneGeometry(3.4, 3.4),
+    new THREE.PlaneGeometry(3.2, 3.2),
     new THREE.MeshBasicMaterial({
       map: new THREE.CanvasTexture(shadowCanvas),
       transparent: true,
@@ -84,27 +113,27 @@ function buildDesktopGlobeAssembly(maxAnisotropy) {
     })
   );
   shadowPlane.rotation.x = -Math.PI / 2;
-  shadowPlane.position.y = -2.18;
+  shadowPlane.position.y = TABLE_TOP_Y + 0.004;
   root.add(shadowPlane);
 
-  // 2. Turned Wooden Pedestal Base
+  // 2. Turned Wooden Pedestal Base (standing directly on TABLE_TOP_Y at x=0, z=0 — same X axis as header)
   const baseProfile = [
-    new THREE.Vector2(0.0, -2.18),
-    new THREE.Vector2(0.96, -2.18),
-    new THREE.Vector2(0.98, -2.08),
-    new THREE.Vector2(0.86, -2.00),
-    new THREE.Vector2(0.74, -1.93),
-    new THREE.Vector2(0.42, -1.87),
-    new THREE.Vector2(0.22, -1.78),
-    new THREE.Vector2(0.14, -1.60),
-    new THREE.Vector2(0.12, -1.52),
-    new THREE.Vector2(0.0, -1.52)
+    new THREE.Vector2(0.0, TABLE_TOP_Y),
+    new THREE.Vector2(0.92, TABLE_TOP_Y),
+    new THREE.Vector2(0.94, TABLE_TOP_Y + 0.10),
+    new THREE.Vector2(0.82, TABLE_TOP_Y + 0.18),
+    new THREE.Vector2(0.70, TABLE_TOP_Y + 0.25),
+    new THREE.Vector2(0.40, TABLE_TOP_Y + 0.31),
+    new THREE.Vector2(0.21, TABLE_TOP_Y + 0.40),
+    new THREE.Vector2(0.14, TABLE_TOP_Y + 0.56),
+    new THREE.Vector2(0.12, TABLE_TOP_Y + 0.64),
+    new THREE.Vector2(0.0, TABLE_TOP_Y + 0.64)
   ];
   const pedestal = new THREE.Mesh(new THREE.LatheGeometry(baseProfile, 48), woodMat);
   root.add(pedestal);
 
   const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.18, 0.1, 32), brassMat);
-  collar.position.y = -1.50;
+  collar.position.y = TABLE_TOP_Y + 0.66;
   root.add(collar);
 
   // 3. Tilted Meridian Cradle + Globe Group (real 23.4° axial tilt)
@@ -135,7 +164,7 @@ function buildDesktopGlobeAssembly(maxAnisotropy) {
   cradleGroup.add(southFinial);
 
   const bracket = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.055, 0.36, 16), brassMat);
-  bracket.position.set(0.08, -1.50, 0);
+  bracket.position.set(0.08, TABLE_TOP_Y + 0.68, 0);
   bracket.rotation.z = 0.22;
   root.add(bracket);
 
@@ -221,6 +250,7 @@ function buildDesktopGlobeAssembly(maxAnisotropy) {
 
 function initScrollGlobeExperience() {
   const track = document.getElementById("deskScrollTrack");
+  const stickyViewport = track?.querySelector(".desk-sticky-viewport");
   const tableWrap = document.getElementById("tablePerspectiveWrap");
   const globeWrap = document.getElementById("globeStageWrap");
   const canvasHost = document.getElementById("globeCanvasHost");
@@ -259,7 +289,7 @@ function initScrollGlobeExperience() {
   const maxAnisotropy = Math.min(16, renderer.capabilities.getMaxAnisotropy());
   const { root: globeRoot, earthSpinGroup, initialSpinY, pinHitTarget } =
     buildDesktopGlobeAssembly(maxAnisotropy);
-  globeRoot.position.set(6.5, 0.15, 0);
+  globeRoot.position.set(11.5, 0.25, 0);
   scene.add(globeRoot);
 
   const raycaster = new THREE.Raycaster();
@@ -375,27 +405,34 @@ function initScrollGlobeExperience() {
     const p = smoothProgress;
 
     // -------------------------------------------------------------
-    // 1. SAME TABLE PLANE (NO Z-ROTATION, NO OPACITY FADE):
-    //    Table tilts smoothly (~68° into tabletop perspective) and
-    //    physically slides to the LEFT while the globe already standing
-    //    to the right on the same table slides in from RIGHT to LEFT!
+    // 1. SAME FINITE 3D TABLE (ENDS AT FRONT & BACK LIKE A CUBE):
+    //    As table tilts (0° -> 68°), room backdrop behind & below the
+    //    finite front/back edges subtly deepens so the cube edges pop.
     // -------------------------------------------------------------
-    const tiltT = easeInOutCubic(THREE.MathUtils.clamp(p / 0.48, 0, 1));
-    const panT = easeInOutCubic(THREE.MathUtils.clamp((p - 0.16) / 0.84, 0, 1));
+    const tiltT = easeInOutCubic(THREE.MathUtils.clamp(p / 0.45, 0, 1));
+    const panT = easeInOutCubic(THREE.MathUtils.clamp((p - 0.14) / 0.86, 0, 1));
 
-    const rotX = tiltT * 68;         // table tilts into perspective (no rotateZ!)
-    const slideX = panT * -125;      // posters physically slide off to the left (vw)
-    const tableScale = 1 - tiltT * 0.08;
+    if (stickyViewport) {
+      // Blend room backdrop from pure paper (#fcfcfb) to soft gallery wall (#eae7e0) as table tilts
+      const bgR = Math.round(THREE.MathUtils.lerp(252, 234, tiltT));
+      const bgG = Math.round(THREE.MathUtils.lerp(252, 231, tiltT));
+      const bgB = Math.round(THREE.MathUtils.lerp(251, 224, tiltT));
+      stickyViewport.style.backgroundColor = `rgb(${bgR}, ${bgG}, ${bgB})`;
+    }
+
+    const rotX = tiltT * 68;
+    const slideX = panT * -130; // posters physically slide off to the left (vw)
+    const tableScale = 1 - tiltT * 0.12;
 
     tableWrap.style.transform = `translate3d(${slideX.toFixed(2)}vw, 0, 0) rotateX(${rotX.toFixed(2)}deg) scale(${tableScale.toFixed(3)})`;
     tableWrap.style.opacity = "1";
     tableWrap.style.pointerEvents = p > 0.12 ? "none" : "auto";
 
     // -------------------------------------------------------------
-    // 2. 3D GLOBE SLIDES IN RIGHT-TO-LEFT (ALWAYS OPACITY 1):
-    //    No opacity fading — the globe is physically positioned on the
-    //    right side of the desk and enters from the right as we pan,
-    //    then camera zooms in onto the Northern Hemisphere.
+    // 2. 3D GLOBE + ITS 3D CUBE TABLETOP SLIDE IN RIGHT-TO-LEFT:
+    //    The globe's base sits at x = 0 (exact same X center as the
+    //    "Books, Movies, Series" header) and z = 0 (center of the table
+    //    depth), resting directly on the finite 3D tabletop cube.
     // -------------------------------------------------------------
     globeWrap.classList.toggle("is-interactive", p > 0.58);
     if (globeHud) {
@@ -413,18 +450,19 @@ function initScrollGlobeExperience() {
 
     earthSpinGroup.rotation.y = initialSpinY + userSpinOffset;
 
-    // Globe physically travels from right (+7.8 off-screen) to center (0.0)
-    globeRoot.position.x = THREE.MathUtils.lerp(7.8, 0.0, panT);
-    globeRoot.position.y = 0.15;
+    // Globe + finite tabletop slab physically travel right-to-left from +11.5 (off right) to 0.0 (exact center X)
+    globeRoot.position.x = THREE.MathUtils.lerp(11.5, 0.0, panT);
+    globeRoot.position.y = 0.25;
 
-    // Camera smoothly zooms in closer & focuses on Northern Hemisphere
-    const zoomT = easeInOutCubic(THREE.MathUtils.clamp((p - 0.35) / 0.65, 0, 1));
-    const camX = THREE.MathUtils.lerp(0.6, 0.22, zoomT);
-    const camY = THREE.MathUtils.lerp(1.15, 1.58 + userLatTilt, zoomT);
-    const camZ = THREE.MathUtils.lerp(4.9, 2.68 - userLatTilt * 0.22, zoomT);
+    // Camera keeps x = 0 at rest so the globe's leg stands dead-center on the exact same X as the header,
+    // while zooming in toward the Northern Hemisphere with both front & back table edges visible
+    const zoomT = easeInOutCubic(THREE.MathUtils.clamp((p - 0.34) / 0.66, 0, 1));
+    const camX = THREE.MathUtils.lerp(0.35, 0.0, zoomT);
+    const camY = THREE.MathUtils.lerp(1.35, 1.52 + userLatTilt, zoomT);
+    const camZ = THREE.MathUtils.lerp(5.8, 3.35 - userLatTilt * 0.22, zoomT);
     camera.position.set(camX, camY, camZ);
 
-    const lookY = THREE.MathUtils.lerp(0.15, 0.62, zoomT);
+    const lookY = THREE.MathUtils.lerp(-0.25, 0.28, zoomT);
     camera.lookAt(0, lookY, 0);
 
     renderer.render(scene, camera);

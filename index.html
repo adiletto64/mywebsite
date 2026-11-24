@@ -42,10 +42,14 @@
   <!-- ================= 3D SCROLL-DRIVEN DESK -> GLOBE TRACK ================= -->
   <section id="deskScrollTrack" class="desk-scroll-track">
     <div class="desk-sticky-viewport">
-      <!-- Layer 1: Top-Down Poster Table (tilts into 3D side-view on scroll) -->
+      <!-- Layer 1: Top-Down Poster Table (tilts into 3D side-view on scroll, with 3D cube front/back edges) -->
       <div id="tablePerspectiveWrap" class="table-perspective-wrap">
         <div class="page-shell mx-auto">
           <div id="tableStage" class="table-stage">
+            <!-- 3D Cube Thickness Front Wall & Back Rim -->
+            <div class="table-edge-front" aria-hidden="true"></div>
+            <div class="table-edge-back" aria-hidden="true"></div>
+
             <!-- Subtle Cluster Labels -->
             <span class="cluster-tag tag-books" aria-hidden="true">books</span>
             <span class="cluster-tag tag-series" aria-hidden="true">series</span>

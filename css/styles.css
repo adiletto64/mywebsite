@@ -37,30 +37,32 @@ body {
 
 /* ===================================================== */
 /* BIG CIRCLE LIGHT WITH BLURRED SHADOW BORDER           */
-/* Nothing changes inside the light; shadow side darkens */
-/* both the background and any posters resting in shadow */
+/* Oversized layer so moving/scaling the light runs 100% */
+/* on the GPU compositor with zero gradient repaints.    */
 /* ===================================================== */
 .spotlight-shadow-overlay {
   position: fixed;
-  inset: 0;
+  inset: -30%;
   pointer-events: none;
   z-index: 4500;
+  will-change: transform;
+  transform-origin: center center;
   background: radial-gradient(
-    circle at 46% 45%,
+    circle at 48% 47%,
     rgba(0, 0, 0, 0) 0%,
-    rgba(0, 0, 0, 0) 32%,
-    rgba(12, 12, 11, 0.14) 44%,
-    rgba(12, 12, 11, 0.36) 58%,
-    rgba(10, 10, 9, 0.52) 76%,
-    rgba(8, 8, 8, 0.62) 100%
+    rgba(0, 0, 0, 0) 22%,
+    rgba(12, 12, 11, 0.14) 32%,
+    rgba(12, 12, 11, 0.36) 44%,
+    rgba(10, 10, 9, 0.54) 62%,
+    rgba(8, 8, 8, 0.66) 100%
   );
 }
 
-/* Reduce saturation by 20% across all visual layers */
-.page-shell,
-.globe-stage-wrap,
-.flying-poster,
-.detail-overlay {
+/* Reduce saturation by 20% on leaf media layers (never on huge animated containers) */
+.scattered-poster img,
+.flying-poster img,
+.globe-canvas-host canvas,
+.kg-map-img {
   filter: saturate(0.8);
 }
 
@@ -592,7 +594,7 @@ body {
   width: 100%;
   height: auto;
   border-radius: 3px;
-  filter: grayscale(0.55) sepia(0.12) contrast(1.04) brightness(1.02);
+  filter: saturate(0.8) grayscale(0.55) sepia(0.12) contrast(1.04) brightness(1.02);
   pointer-events: none;
 }
 

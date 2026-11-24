@@ -60,9 +60,15 @@
         </div>
       </div>
 
-      <!-- Layer 2: 3D Desktop Globe (approaches smoothly from the side & focuses on Northern Hemisphere) -->
+      <!-- Layer 2: 3D Desktop Globe (slides right-to-left on the same table & focuses on Northern Hemisphere) -->
       <div id="globeStageWrap" class="globe-stage-wrap" aria-label="Interactive 3D Globe focused on the Northern Hemisphere">
         <div id="globeCanvasHost" class="globe-canvas-host"></div>
+
+        <!-- Tooltip shown when hovering the 3D pushpin on the globe -->
+        <div id="globePinTooltip" class="globe-pin-tooltip" aria-hidden="true">
+          <div class="pin-tooltip-title">Кыргызстан</div>
+          <div class="pin-tooltip-desc">Сердце Центральной Азии — горы Тянь-Шаня, Иссык-Куль и Памир-Алай. Прокрути ниже к карте.</div>
+        </div>
 
         <div id="globeHud" class="globe-hud">
           <span class="globe-kicker">northern hemisphere</span>

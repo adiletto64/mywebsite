@@ -442,13 +442,55 @@ function initRansomHeroTitle() {
 // Kyrgyzstan map pins projected onto Wikimedia Kyrgyzstan_adm_location_map.svg
 // Bounding box: top 43.5°N, bottom 39.0°N, left 69.0°E, right 80.6°E
 const KYRGYZSTAN_PINS = [
-  { name: "Бишкек",      lat: 42.8746, lon: 74.5698, labelPos: "top" },
-  { name: "Бостери",     lat: 42.6500, lon: 77.1833, labelPos: "right" },
-  { name: "Джалал-Абад", lat: 40.9333, lon: 73.0000, labelPos: "top" },
-  { name: "Ош",          lat: 40.5140, lon: 72.8161, labelPos: "left" },
-  { name: "Гулчо",       lat: 40.3167, lon: 73.4431, labelPos: "right" },
-  { name: "Кара-Кой",    lat: 39.9832, lon: 72.6051, labelPos: "left" },
-  { name: "Ленин-Пик",   lat: 39.3436, lon: 72.8775, labelPos: "bottom" }
+  {
+    name: "Бишкек",
+    lat: 42.8746,
+    lon: 74.5698,
+    labelPos: "top",
+    desc: "Столица у подножия Кыргызского хребта — зелёные бульвары, кофейни и вид на снежные пики Ала-Тоо."
+  },
+  {
+    name: "Бостери",
+    lat: 42.6500,
+    lon: 77.1833,
+    labelPos: "right",
+    desc: "Северный берег Иссык-Куля — прозрачная горная вода, летнее солнце и бескрайний горизонт озера."
+  },
+  {
+    name: "Джалал-Абад",
+    lat: 40.9333,
+    lon: 73.0000,
+    labelPos: "top",
+    desc: "Тёплый южный город в Ферганской долине, знаменитый минеральными источниками и ореховыми лесами."
+  },
+  {
+    name: "Ош",
+    lat: 40.5140,
+    lon: 72.8161,
+    labelPos: "left",
+    desc: "Древняя южная столица у священной горы Сулайман-Тоо — восточный базар, история и лучший плов."
+  },
+  {
+    name: "Гулчо",
+    lat: 40.3167,
+    lon: 73.4431,
+    labelPos: "right",
+    desc: "Горное село в Алайском районе на пути по Памирскому тракту среди красных скал и перевалов."
+  },
+  {
+    name: "Кара-Кой",
+    lat: 39.9832,
+    lon: 72.6051,
+    labelPos: "left",
+    desc: "Высокогорное ущелье и жайлоо в Ноокате — арчовые леса, кристальный воздух и дикая природа Алая."
+  },
+  {
+    name: "Ленин-Пик",
+    lat: 39.3436,
+    lon: 72.8775,
+    labelPos: "bottom",
+    desc: "Величественный семитысячник (7134 м) на границе Памира и Алайской долины — царство ледников и неба."
+  }
 ];
 
 const KG_MAP_BOUNDS = { top: 43.5, bottom: 39.0, left: 69.0, right: 80.6 };
@@ -475,7 +517,7 @@ function initKyrgyzstanMap() {
     pin.className = "map-pin";
     pin.style.left = `${xPct.toFixed(2)}%`;
     pin.style.top = `${yPct.toFixed(2)}%`;
-    pin.setAttribute("aria-label", place.name);
+    pin.setAttribute("aria-label", `${place.name}: ${place.desc}`);
 
     pin.innerHTML = `
       <svg class="map-pin-svg" viewBox="0 0 26 34" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -490,6 +532,10 @@ function initKyrgyzstanMap() {
         <ellipse cx="11" cy="8.6" rx="2.6" ry="1.1" fill="#fca5a5" opacity="0.7" />
       </svg>
       <span class="map-pin-label pos-${place.labelPos}">${place.name}</span>
+      <span class="map-pin-tooltip" role="tooltip">
+        <span class="pin-tooltip-title d-block">${place.name}</span>
+        <span class="pin-tooltip-desc d-block">${place.desc}</span>
+      </span>
     `;
 
     frame.appendChild(pin);

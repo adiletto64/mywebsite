@@ -1,13 +1,13 @@
 import * as THREE from "three";
 
-const EARTH_TEXTURE_URL = "https://cdn.jsdelivr.net/npm/three-globe/example/img/earth-day.jpg";
+// Local 8K high-resolution Earth daymap texture (downloaded into assets/)
+const EARTH_TEXTURE_URL = "./assets/earth-8k.jpg";
 const EARTH_BUMP_URL = "https://cdn.jsdelivr.net/npm/three-globe/example/img/earth-topology.png";
 
 // Axial tilt of Earth / classic desktop globe (23.4 degrees)
 const AXIAL_TILT_RAD = THREE.MathUtils.degToRad(23.4);
 const GLOBE_RADIUS = 1.38;
 
-// Convert lat/lon (degrees) to 3D point on sphere of radius R (Three.js SphereGeometry UV mapping)
 function latLonToVector3(latDeg, lonDeg, radius) {
   const phi = THREE.MathUtils.degToRad(90 - latDeg);
   const theta = THREE.MathUtils.degToRad(lonDeg + 180);
@@ -28,7 +28,6 @@ function createFallbackEarthTexture() {
   ctx.fillStyle = "#e7e4dc";
   ctx.fillRect(0, 0, w, h);
 
-  // Subtle archival graticule grid
   ctx.strokeStyle = "rgba(30, 30, 28, 0.14)";
   ctx.lineWidth = 1;
   for (let x = 0; x <= w; x += w / 24) {
@@ -44,22 +43,14 @@ function createFallbackEarthTexture() {
     ctx.stroke();
   }
 
-  // Equator highlight
-  ctx.strokeStyle = "rgba(30, 30, 28, 0.28)";
-  ctx.beginPath();
-  ctx.moveTo(0, h / 2);
-  ctx.lineTo(w, h / 2);
-  ctx.stroke();
-
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
   return tex;
 }
 
-function buildDesktopGlobeAssembly() {
+function buildDesktopGlobeAssembly(maxAnisotropy) {
   const root = new THREE.Group();
 
-  // Materials: warm walnut wood base, brushed antique brass meridian arc, soft contact shadow
   const woodMat = new THREE.MeshStandardMaterial({
     color: 0x3b2d23,
     roughness: 0.62,
@@ -96,7 +87,7 @@ function buildDesktopGlobeAssembly() {
   shadowPlane.position.y = -2.18;
   root.add(shadowPlane);
 
-  // 2. Turned Wooden Pedestal Base (LatheGeometry standing on the desk)
+  // 2. Turned Wooden Pedestal Base
   const baseProfile = [
     new THREE.Vector2(0.0, -2.18),
     new THREE.Vector2(0.96, -2.18),
@@ -112,7 +103,6 @@ function buildDesktopGlobeAssembly() {
   const pedestal = new THREE.Mesh(new THREE.LatheGeometry(baseProfile, 48), woodMat);
   root.add(pedestal);
 
-  // Brass collar ring atop pedestal
   const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.18, 0.1, 32), brassMat);
   collar.position.y = -1.50;
   root.add(collar);
@@ -122,17 +112,14 @@ function buildDesktopGlobeAssembly() {
   cradleGroup.rotation.z = -AXIAL_TILT_RAD;
   root.add(cradleGroup);
 
-  // Classic C-shaped Semi-Circular Meridian Ring (brass arc)
   const arcRadius = GLOBE_RADIUS + 0.14;
   const meridianArc = new THREE.Mesh(
     new THREE.TorusGeometry(arcRadius, 0.036, 16, 72, Math.PI * 1.06),
     brassMat
   );
-  // Orient arc cleanly from South Pole to North Pole along the right side
   meridianArc.rotation.z = -Math.PI * 0.53;
   cradleGroup.add(meridianArc);
 
-  // Top & Bottom Polar Axle Pins + Finials
   const axleRod = new THREE.Mesh(
     new THREE.CylinderGeometry(0.022, 0.022, arcRadius * 2 + 0.14, 16),
     brassMat
@@ -147,57 +134,56 @@ function buildDesktopGlobeAssembly() {
   southFinial.position.y = -(arcRadius + 0.05);
   cradleGroup.add(southFinial);
 
-  // Connecting brass bracket from pedestal up to the meridian arc
   const bracket = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.055, 0.36, 16), brassMat);
   bracket.position.set(0.08, -1.50, 0);
   bracket.rotation.z = 0.22;
   root.add(bracket);
 
-  // 4. Spinning Earth Sphere Group (rotates around tilted polar Y-axis)
+  // 4. High-Resolution Spinning Earth Sphere (96x96 subdivisions + 8K texture)
   const earthSpinGroup = new THREE.Group();
   cradleGroup.add(earthSpinGroup);
 
   const fallbackTex = createFallbackEarthTexture();
   const globeMat = new THREE.MeshStandardMaterial({
     map: fallbackTex,
-    roughness: 0.72,
-    metalness: 0.05
+    roughness: 0.68,
+    metalness: 0.04
   });
 
   const earthMesh = new THREE.Mesh(
-    new THREE.SphereGeometry(GLOBE_RADIUS, 64, 64),
+    new THREE.SphereGeometry(GLOBE_RADIUS, 96, 96),
     globeMat
   );
   earthSpinGroup.add(earthMesh);
 
-  // Subtle cartographic graticule lines over the sphere
   const graticule = new THREE.Mesh(
-    new THREE.SphereGeometry(GLOBE_RADIUS + 0.004, 24, 12),
+    new THREE.SphereGeometry(GLOBE_RADIUS + 0.003, 24, 12),
     new THREE.MeshBasicMaterial({
       color: 0x22201d,
       wireframe: true,
       transparent: true,
-      opacity: 0.07
+      opacity: 0.06
     })
   );
   earthSpinGroup.add(graticule);
 
-  // Load real Earth day texture + elevation bump map asynchronously
   const loader = new THREE.TextureLoader();
   loader.setCrossOrigin("anonymous");
   loader.load(EARTH_TEXTURE_URL, (tex) => {
     tex.colorSpace = THREE.SRGBColorSpace;
-    tex.anisotropy = 8;
+    tex.anisotropy = maxAnisotropy;
+    tex.minFilter = THREE.LinearMipmapLinearFilter;
+    tex.magFilter = THREE.LinearFilter;
     globeMat.map = tex;
     globeMat.needsUpdate = true;
   });
   loader.load(EARTH_BUMP_URL, (bump) => {
     globeMat.bumpMap = bump;
-    globeMat.bumpScale = 0.035;
+    globeMat.bumpScale = 0.028;
     globeMat.needsUpdate = true;
   });
 
-  // 5. Tiny 3D Red Pushpin right on Kyrgyzstan (41.5°N, 74.7°E)
+  // 5. 3D Red Pushpin on Kyrgyzstan (41.5°N, 74.7°E) + invisible generous hover target
   const kgPos = latLonToVector3(41.5, 74.7, GLOBE_RADIUS);
   const kgNormal = kgPos.clone().normalize();
   const pinGroup = new THREE.Group();
@@ -205,27 +191,32 @@ function buildDesktopGlobeAssembly() {
   pinGroup.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), kgNormal);
 
   const needle = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.008, 0.004, 0.09, 10),
+    new THREE.CylinderGeometry(0.009, 0.004, 0.1, 10),
     new THREE.MeshStandardMaterial({ color: 0x444444, metalness: 0.8, roughness: 0.3 })
   );
-  needle.position.y = 0.045;
+  needle.position.y = 0.05;
   pinGroup.add(needle);
 
   const pinHead = new THREE.Mesh(
-    new THREE.SphereGeometry(0.038, 16, 16),
-    new THREE.MeshStandardMaterial({ color: 0xd92d20, roughness: 0.32, metalness: 0.08 })
+    new THREE.SphereGeometry(0.042, 16, 16),
+    new THREE.MeshStandardMaterial({ color: 0xd92d20, roughness: 0.3, metalness: 0.08 })
   );
-  pinHead.position.y = 0.105;
+  pinHead.position.y = 0.115;
   pinGroup.add(pinHead);
+
+  const pinHitTarget = new THREE.Mesh(
+    new THREE.SphereGeometry(0.14, 12, 12),
+    new THREE.MeshBasicMaterial({ visible: false })
+  );
+  pinHitTarget.position.y = 0.08;
+  pinGroup.add(pinHitTarget);
 
   earthSpinGroup.add(pinGroup);
 
-  // Initial spin angle so Kyrgyzstan & Northern Eurasia face the camera cleanly
-  // (lon 74.7°E -> orient toward +Z front)
   const initialSpinY = THREE.MathUtils.degToRad(-165);
   earthSpinGroup.rotation.y = initialSpinY;
 
-  return { root, earthSpinGroup, initialSpinY };
+  return { root, earthSpinGroup, initialSpinY, pinHitTarget };
 }
 
 function initScrollGlobeExperience() {
@@ -234,10 +225,10 @@ function initScrollGlobeExperience() {
   const globeWrap = document.getElementById("globeStageWrap");
   const canvasHost = document.getElementById("globeCanvasHost");
   const globeHud = document.getElementById("globeHud");
+  const globePinTooltip = document.getElementById("globePinTooltip");
 
   if (!track || !tableWrap || !globeWrap || !canvasHost) return;
 
-  // Set up Three.js scene
   const scene = new THREE.Scene();
 
   const camera = new THREE.PerspectiveCamera(
@@ -254,7 +245,6 @@ function initScrollGlobeExperience() {
   renderer.toneMappingExposure = 1.06;
   canvasHost.appendChild(renderer.domElement);
 
-  // Soft archival daylight + directional key light matching the page's circular spotlight
   const hemiLight = new THREE.HemisphereLight(0xfffdf8, 0xd8d2c6, 1.35);
   scene.add(hemiLight);
 
@@ -266,18 +256,21 @@ function initScrollGlobeExperience() {
   rimLight.position.set(-4.0, 2.5, -3.5);
   scene.add(rimLight);
 
-  const { root: globeRoot, earthSpinGroup, initialSpinY } = buildDesktopGlobeAssembly();
-  globeRoot.position.set(0, 0.15, 0);
+  const maxAnisotropy = Math.min(16, renderer.capabilities.getMaxAnisotropy());
+  const { root: globeRoot, earthSpinGroup, initialSpinY, pinHitTarget } =
+    buildDesktopGlobeAssembly(maxAnisotropy);
+  globeRoot.position.set(6.5, 0.15, 0);
   scene.add(globeRoot);
 
-  // Scroll & interactive spin state
+  const raycaster = new THREE.Raycaster();
+  const pointerNdc = new THREE.Vector2();
+
   let targetScrollProgress = 0;
   let smoothProgress = 0;
 
-  // User spin state (Northern Hemisphere focus only!)
   let userSpinOffset = 0;
   let spinVelocity = 0;
-  let userLatTilt = 0; // clamped so camera stays strictly on the Northern Hemisphere
+  let userLatTilt = 0;
   let isPointerDown = false;
   let lastPointerX = 0;
   let lastPointerY = 0;
@@ -299,30 +292,63 @@ function initScrollGlobeExperience() {
     updateTargetScroll();
   });
 
-  // Pointer drag to spin the 3D globe (horizontal 360° spin + vertical clamped to Northern Hemisphere)
+  function hidePinTooltip() {
+    if (!globePinTooltip) return;
+    globePinTooltip.classList.remove("visible");
+    globePinTooltip.setAttribute("aria-hidden", "true");
+  }
+
   canvasHost.addEventListener("pointerdown", (e) => {
     if (smoothProgress < 0.55) return;
     isPointerDown = true;
     lastPointerX = e.clientX;
     lastPointerY = e.clientY;
     spinVelocity = 0;
+    hidePinTooltip();
     canvasHost.classList.add("is-spinning");
     canvasHost.setPointerCapture(e.pointerId);
   });
 
   canvasHost.addEventListener("pointermove", (e) => {
-    if (!isPointerDown) return;
-    const dx = e.clientX - lastPointerX;
-    const dy = e.clientY - lastPointerY;
-    lastPointerX = e.clientX;
-    lastPointerY = e.clientY;
+    if (isPointerDown) {
+      const dx = e.clientX - lastPointerX;
+      const dy = e.clientY - lastPointerY;
+      lastPointerX = e.clientX;
+      lastPointerY = e.clientY;
 
-    const deltaSpin = dx * 0.0075;
-    userSpinOffset += deltaSpin;
-    spinVelocity = deltaSpin;
+      const deltaSpin = dx * 0.0075;
+      userSpinOffset += deltaSpin;
+      spinVelocity = deltaSpin;
 
-    // Allow gentle vertical tilt strictly within the Northern Hemisphere
-    userLatTilt = THREE.MathUtils.clamp(userLatTilt + dy * 0.0045, -0.32, 0.55);
+      // Clamp vertical viewing strictly to Northern Hemisphere
+      userLatTilt = THREE.MathUtils.clamp(userLatTilt + dy * 0.0045, -0.32, 0.55);
+      return;
+    }
+
+    // Raycast hover over the 3D red pushpin on Kyrgyzstan
+    if (smoothProgress > 0.58 && globePinTooltip) {
+      const rect = canvasHost.getBoundingClientRect();
+      pointerNdc.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      pointerNdc.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(pointerNdc, camera);
+      const hits = raycaster.intersectObject(pinHitTarget, false);
+
+      if (hits.length > 0) {
+        globePinTooltip.style.left = `${e.clientX}px`;
+        globePinTooltip.style.top = `${e.clientY}px`;
+        globePinTooltip.classList.add("visible");
+        globePinTooltip.setAttribute("aria-hidden", "false");
+        canvasHost.style.cursor = "pointer";
+      } else {
+        hidePinTooltip();
+        canvasHost.style.cursor = "";
+      }
+    }
+  });
+
+  canvasHost.addEventListener("pointerleave", () => {
+    hidePinTooltip();
+    canvasHost.style.cursor = "";
   });
 
   const endSpin = (e) => {
@@ -337,7 +363,6 @@ function initScrollGlobeExperience() {
   canvasHost.addEventListener("pointerup", endSpin);
   canvasHost.addEventListener("pointercancel", endSpin);
 
-  // Smooth cubic easing helper
   const easeInOutCubic = (t) =>
     t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
@@ -346,73 +371,63 @@ function initScrollGlobeExperience() {
   function animate() {
     requestAnimationFrame(animate);
 
-    // Smoothly interpolate scroll progress so camera transition is always silky
     smoothProgress += (targetScrollProgress - smoothProgress) * 0.085;
     const p = smoothProgress;
 
     // -------------------------------------------------------------
-    // 1. SAME TABLE PLANE:
-    //    Phase A (0.0 -> 0.50): Table with posters & "Books, Movies, Series"
-    //    rotates smoothly by ~70° into perspective and 90° around Z.
-    //    Phase B (0.42 -> 1.0): Camera moves further down along the SAME table,
-    //    so the tilted posters glide up/back on the desk while the globe
-    //    standing further down on that table glides into view!
+    // 1. SAME TABLE PLANE (NO Z-ROTATION, NO OPACITY FADE):
+    //    Table tilts smoothly (~68° into tabletop perspective) and
+    //    physically slides to the LEFT while the globe already standing
+    //    to the right on the same table slides in from RIGHT to LEFT!
     // -------------------------------------------------------------
-    const tiltT = easeInOutCubic(THREE.MathUtils.clamp(p / 0.52, 0, 1));
-    const travelT = easeInOutCubic(THREE.MathUtils.clamp((p - 0.36) / 0.64, 0, 1));
+    const tiltT = easeInOutCubic(THREE.MathUtils.clamp(p / 0.48, 0, 1));
+    const panT = easeInOutCubic(THREE.MathUtils.clamp((p - 0.16) / 0.84, 0, 1));
 
-    const rotX = tiltT * 70;          // tilts table ~70° into side/tabletop perspective
-    const rotZ = tiltT * 90;          // rotates table plane + posters + title by 90° around Z
-    const transY = travelT * -42;     // camera moves further down the table -> posters glide up/back
-    const transZ = travelT * -180;    // posters recede slightly behind as camera approaches globe
-    const tableScale = 1 - tiltT * 0.08 - travelT * 0.14;
-    // Keep posters softly visible on the desk behind the globe (never harshly cut out)
-    const tableOpacity = 1 - travelT * 0.72;
+    const rotX = tiltT * 68;         // table tilts into perspective (no rotateZ!)
+    const slideX = panT * -125;      // posters physically slide off to the left (vw)
+    const tableScale = 1 - tiltT * 0.08;
 
-    tableWrap.style.transform = `translate3d(0, ${transY.toFixed(2)}vh, ${transZ.toFixed(1)}px) rotateX(${rotX.toFixed(2)}deg) rotateZ(${rotZ.toFixed(2)}deg) scale(${tableScale.toFixed(3)})`;
-    tableWrap.style.opacity = tableOpacity.toFixed(3);
+    tableWrap.style.transform = `translate3d(${slideX.toFixed(2)}vw, 0, 0) rotateX(${rotX.toFixed(2)}deg) scale(${tableScale.toFixed(3)})`;
+    tableWrap.style.opacity = "1";
     tableWrap.style.pointerEvents = p > 0.12 ? "none" : "auto";
 
     // -------------------------------------------------------------
-    // 2. 3D GLOBE STANDING FURTHER DOWN ON THE SAME TABLE:
-    //    Enters smoothly from below as the camera moves down the table,
+    // 2. 3D GLOBE SLIDES IN RIGHT-TO-LEFT (ALWAYS OPACITY 1):
+    //    No opacity fading — the globe is physically positioned on the
+    //    right side of the desk and enters from the right as we pan,
     //    then camera zooms in onto the Northern Hemisphere.
     // -------------------------------------------------------------
-    const globeFade = THREE.MathUtils.clamp((p - 0.30) / 0.28, 0, 1);
-    globeWrap.style.opacity = globeFade.toFixed(3);
     globeWrap.classList.toggle("is-interactive", p > 0.58);
-
     if (globeHud) {
       globeHud.classList.toggle("visible", p > 0.74);
     }
+    if (p <= 0.58) hidePinTooltip();
 
-    if (globeFade > 0.005) {
-      const approachT = easeInOutCubic(THREE.MathUtils.clamp((p - 0.30) / 0.70, 0, 1));
-
-      if (!isPointerDown) {
-        userSpinOffset += spinVelocity;
-        spinVelocity *= 0.94;
-        if (Math.abs(spinVelocity) < 0.0001 && p > 0.7) {
-          userSpinOffset += 0.00075;
-        }
+    if (!isPointerDown) {
+      userSpinOffset += spinVelocity;
+      spinVelocity *= 0.94;
+      if (Math.abs(spinVelocity) < 0.0001 && p > 0.72) {
+        userSpinOffset += 0.00075;
       }
-
-      const introSpin = (1 - approachT) * -0.75;
-      earthSpinGroup.rotation.y = initialSpinY + introSpin + userSpinOffset;
-
-      // Globe stands on the table further down -> starts lower/farther, camera glides down & zooms into Northern Hemisphere
-      globeRoot.position.y = THREE.MathUtils.lerp(-2.4, 0.15, approachT);
-
-      const camX = THREE.MathUtils.lerp(1.6, 0.25, approachT);
-      const camY = THREE.MathUtils.lerp(2.2, 1.55 + userLatTilt, approachT);
-      const camZ = THREE.MathUtils.lerp(5.6, 2.72 - userLatTilt * 0.22, approachT);
-      camera.position.set(camX, camY, camZ);
-
-      const lookY = THREE.MathUtils.lerp(-0.9, 0.62, approachT);
-      camera.lookAt(0, lookY, 0);
-
-      renderer.render(scene, camera);
     }
+
+    earthSpinGroup.rotation.y = initialSpinY + userSpinOffset;
+
+    // Globe physically travels from right (+7.8 off-screen) to center (0.0)
+    globeRoot.position.x = THREE.MathUtils.lerp(7.8, 0.0, panT);
+    globeRoot.position.y = 0.15;
+
+    // Camera smoothly zooms in closer & focuses on Northern Hemisphere
+    const zoomT = easeInOutCubic(THREE.MathUtils.clamp((p - 0.35) / 0.65, 0, 1));
+    const camX = THREE.MathUtils.lerp(0.6, 0.22, zoomT);
+    const camY = THREE.MathUtils.lerp(1.15, 1.58 + userLatTilt, zoomT);
+    const camZ = THREE.MathUtils.lerp(4.9, 2.68 - userLatTilt * 0.22, zoomT);
+    camera.position.set(camX, camY, camZ);
+
+    const lookY = THREE.MathUtils.lerp(0.15, 0.62, zoomT);
+    camera.lookAt(0, lookY, 0);
+
+    renderer.render(scene, camera);
   }
 
   animate();

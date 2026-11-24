@@ -301,7 +301,7 @@ function initScrollGlobeExperience() {
 
   // Pointer drag to spin the 3D globe (horizontal 360° spin + vertical clamped to Northern Hemisphere)
   canvasHost.addEventListener("pointerdown", (e) => {
-    if (smoothProgress < 0.48) return;
+    if (smoothProgress < 0.55) return;
     isPointerDown = true;
     lastPointerX = e.clientX;
     lastPointerY = e.clientY;
@@ -351,59 +351,65 @@ function initScrollGlobeExperience() {
     const p = smoothProgress;
 
     // -------------------------------------------------------------
-    // 1. TABLE 3D TRANSITION (top-down -> side-angled desk surface)
+    // 1. SAME TABLE PLANE:
+    //    Phase A (0.0 -> 0.50): Table with posters & "Books, Movies, Series"
+    //    rotates smoothly by ~70° into perspective and 90° around Z.
+    //    Phase B (0.42 -> 1.0): Camera moves further down along the SAME table,
+    //    so the tilted posters glide up/back on the desk while the globe
+    //    standing further down on that table glides into view!
     // -------------------------------------------------------------
-    const tableT = easeInOutCubic(THREE.MathUtils.clamp(p / 0.62, 0, 1));
-    const rotX = tableT * 68;         // tilts from flat top-down to side-view desk
-    const rotZ = tableT * -7.5;       // subtle side sweep
-    const transX = tableT * -14;      // sweeps sideways (vw)
-    const transY = tableT * 24;       // drops toward desk floor (vh)
-    const tableScale = 1 - tableT * 0.18;
-    const tableOpacity = 1 - THREE.MathUtils.clamp((p - 0.22) / 0.34, 0, 1);
+    const tiltT = easeInOutCubic(THREE.MathUtils.clamp(p / 0.52, 0, 1));
+    const travelT = easeInOutCubic(THREE.MathUtils.clamp((p - 0.36) / 0.64, 0, 1));
 
-    tableWrap.style.transform = `translate3d(${transX.toFixed(2)}vw, ${transY.toFixed(2)}vh, 0) rotateX(${rotX.toFixed(2)}deg) rotateZ(${rotZ.toFixed(2)}deg) scale(${tableScale.toFixed(3)})`;
+    const rotX = tiltT * 70;          // tilts table ~70° into side/tabletop perspective
+    const rotZ = tiltT * 90;          // rotates table plane + posters + title by 90° around Z
+    const transY = travelT * -42;     // camera moves further down the table -> posters glide up/back
+    const transZ = travelT * -180;    // posters recede slightly behind as camera approaches globe
+    const tableScale = 1 - tiltT * 0.08 - travelT * 0.14;
+    // Keep posters softly visible on the desk behind the globe (never harshly cut out)
+    const tableOpacity = 1 - travelT * 0.72;
+
+    tableWrap.style.transform = `translate3d(0, ${transY.toFixed(2)}vh, ${transZ.toFixed(1)}px) rotateX(${rotX.toFixed(2)}deg) rotateZ(${rotZ.toFixed(2)}deg) scale(${tableScale.toFixed(3)})`;
     tableWrap.style.opacity = tableOpacity.toFixed(3);
-    tableWrap.style.pointerEvents = p > 0.22 ? "none" : "auto";
+    tableWrap.style.pointerEvents = p > 0.12 ? "none" : "auto";
 
     // -------------------------------------------------------------
-    // 2. 3D GLOBE SIDE-CAMERA APPROACH & ZOOM TO NORTHERN HEMISPHERE
+    // 2. 3D GLOBE STANDING FURTHER DOWN ON THE SAME TABLE:
+    //    Enters smoothly from below as the camera moves down the table,
+    //    then camera zooms in onto the Northern Hemisphere.
     // -------------------------------------------------------------
-    const globeFade = THREE.MathUtils.clamp((p - 0.14) / 0.34, 0, 1);
+    const globeFade = THREE.MathUtils.clamp((p - 0.30) / 0.28, 0, 1);
     globeWrap.style.opacity = globeFade.toFixed(3);
-    globeWrap.classList.toggle("is-interactive", p > 0.52);
+    globeWrap.classList.toggle("is-interactive", p > 0.58);
 
     if (globeHud) {
-      globeHud.classList.toggle("visible", p > 0.72);
+      globeHud.classList.toggle("visible", p > 0.74);
     }
 
-    // Only render WebGL when globe is visible
     if (globeFade > 0.005) {
-      const approachT = easeInOutCubic(THREE.MathUtils.clamp((p - 0.14) / 0.86, 0, 1));
+      const approachT = easeInOutCubic(THREE.MathUtils.clamp((p - 0.30) / 0.70, 0, 1));
 
-      // Apply gentle inertia when user releases spin, plus subtle idle drift
       if (!isPointerDown) {
         userSpinOffset += spinVelocity;
         spinVelocity *= 0.94;
-        if (Math.abs(spinVelocity) < 0.0001 && p > 0.65) {
-          userSpinOffset += 0.00075; // calm, slow museum-globe rotation
+        if (Math.abs(spinVelocity) < 0.0001 && p > 0.7) {
+          userSpinOffset += 0.00075;
         }
       }
 
-      // Spin globe gently into place during approach + user spin
-      const introSpin = (1 - approachT) * -0.9;
+      const introSpin = (1 - approachT) * -0.75;
       earthSpinGroup.rotation.y = initialSpinY + introSpin + userSpinOffset;
 
-      // Camera swoops in from the SIDE (high X, low-mid Y) and zooms into the Northern Hemisphere!
-      // Start (side view): (6.4, 0.85, 4.8) -> End (close Northern Hemisphere focus): (0.28, 1.55, 2.72)
-      const camX = THREE.MathUtils.lerp(6.4, 0.28, approachT);
-      const camY = THREE.MathUtils.lerp(0.85, 1.55 + userLatTilt, approachT);
-      const camZ = THREE.MathUtils.lerp(4.8, 2.72 - userLatTilt * 0.22, approachT);
+      // Globe stands on the table further down -> starts lower/farther, camera glides down & zooms into Northern Hemisphere
+      globeRoot.position.y = THREE.MathUtils.lerp(-2.4, 0.15, approachT);
+
+      const camX = THREE.MathUtils.lerp(1.6, 0.25, approachT);
+      const camY = THREE.MathUtils.lerp(2.2, 1.55 + userLatTilt, approachT);
+      const camZ = THREE.MathUtils.lerp(5.6, 2.72 - userLatTilt * 0.22, approachT);
       camera.position.set(camX, camY, camZ);
 
-      // Look target smoothly shifts from whole globe side-profile up to the Northern Hemisphere (y = 0.62)
-      const lookX = THREE.MathUtils.lerp(-0.45, 0.0, approachT);
-      const lookY = THREE.MathUtils.lerp(-0.25, 0.62, approachT);
-      camera.lookAt(lookX, lookY, 0);
+      const lookY = THREE.MathUtils.lerp(-0.9, 0.62, approachT);
+      camera.lookAt(0, lookY, 0);
 
       renderer.render(scene, camera);
     }

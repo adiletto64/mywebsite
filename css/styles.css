@@ -69,7 +69,7 @@ body {
 /* ===================================================== */
 .desk-scroll-track {
   position: relative;
-  height: 260vh;
+  height: 300vh;
 }
 
 .desk-sticky-viewport {
@@ -78,7 +78,7 @@ body {
   width: 100%;
   height: 100vh;
   overflow: hidden;
-  perspective: 1400px;
+  perspective: 1350px;
 }
 
 .table-perspective-wrap {
@@ -88,7 +88,7 @@ body {
   align-items: center;
   justify-content: center;
   transform-style: preserve-3d;
-  transform-origin: 50% 62%;
+  transform-origin: 50% 50%;
   will-change: transform, opacity;
   z-index: 2;
 }

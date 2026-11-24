@@ -439,9 +439,85 @@ function initRansomHeroTitle() {
   }
 }
 
+// Kyrgyzstan map pins projected onto Wikimedia Kyrgyzstan_adm_location_map.svg
+// Bounding box: top 43.5°N, bottom 39.0°N, left 69.0°E, right 80.6°E
+const KYRGYZSTAN_PINS = [
+  { name: "Бишкек",      lat: 42.8746, lon: 74.5698, labelPos: "top" },
+  { name: "Бостери",     lat: 42.6500, lon: 77.1833, labelPos: "right" },
+  { name: "Джалал-Абад", lat: 40.9333, lon: 73.0000, labelPos: "top" },
+  { name: "Ош",          lat: 40.5140, lon: 72.8161, labelPos: "left" },
+  { name: "Гулчо",       lat: 40.3167, lon: 73.4431, labelPos: "right" },
+  { name: "Кара-Кой",    lat: 39.9832, lon: 72.6051, labelPos: "left" },
+  { name: "Ленин-Пик",   lat: 39.3436, lon: 72.8775, labelPos: "bottom" }
+];
+
+const KG_MAP_BOUNDS = { top: 43.5, bottom: 39.0, left: 69.0, right: 80.6 };
+
+function initKyrgyzstanMap() {
+  const section = document.getElementById("kyrgyzstanSection");
+  const frame = document.getElementById("kgMapFrame");
+  const mapImg = document.getElementById("kgMapImg");
+  if (!section || !frame || !mapImg) return;
+
+  // Fallback to standard outline map if admin map ever fails
+  mapImg.addEventListener("error", function handleMapErr() {
+    mapImg.removeEventListener("error", handleMapErr);
+    mapImg.src = "https://upload.wikimedia.org/wikipedia/commons/7/7b/Kyrgyzstan_location_map.svg";
+  });
+
+  // Render red pushpins (канцелярские кнопки) at exact projected coordinates
+  KYRGYZSTAN_PINS.forEach((place) => {
+    const xPct = ((place.lon - KG_MAP_BOUNDS.left) / (KG_MAP_BOUNDS.right - KG_MAP_BOUNDS.left)) * 100;
+    const yPct = ((KG_MAP_BOUNDS.top - place.lat) / (KG_MAP_BOUNDS.top - KG_MAP_BOUNDS.bottom)) * 100;
+
+    const pin = document.createElement("button");
+    pin.type = "button";
+    pin.className = "map-pin";
+    pin.style.left = `${xPct.toFixed(2)}%`;
+    pin.style.top = `${yPct.toFixed(2)}%`;
+    pin.setAttribute("aria-label", place.name);
+
+    pin.innerHTML = `
+      <svg class="map-pin-svg" viewBox="0 0 26 34" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <!-- Metallic needle tip touching exact coordinate (13, 34) -->
+        <line x1="13" y1="21" x2="13" y2="33.5" stroke="#525252" stroke-width="1.8" stroke-linecap="round" />
+        <circle cx="13" cy="33.5" r="1.4" fill="#1a1a1a" opacity="0.55" />
+        <!-- Red pushpin plastic body -->
+        <ellipse cx="13" cy="19.5" rx="6.2" ry="2.7" fill="#b42318" />
+        <path d="M9.6 10.5 L16.4 10.5 L15.4 19.2 L10.6 19.2 Z" fill="#d92d20" />
+        <ellipse cx="13" cy="9.5" rx="7.2" ry="3.3" fill="#ef4444" />
+        <!-- Subtle glossy specular highlight on top of pin head -->
+        <ellipse cx="11" cy="8.6" rx="2.6" ry="1.1" fill="#fca5a5" opacity="0.7" />
+      </svg>
+      <span class="map-pin-label pos-${place.labelPos}">${place.name}</span>
+    `;
+
+    frame.appendChild(pin);
+  });
+
+  // Smooth scroll-reveal when user scrolls down to the map
+  if ("IntersectionObserver" in window) {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            section.classList.add("is-visible");
+            observer.unobserve(section);
+          }
+        });
+      },
+      { threshold: 0.12 }
+    );
+    observer.observe(section);
+  } else {
+    section.classList.add("is-visible");
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   initCleanCanvasGrain();
   initRansomHeroTitle();
+  initKyrgyzstanMap();
 
   const tableStage = document.getElementById("tableStage");
 
